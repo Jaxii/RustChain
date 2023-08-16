@@ -15,7 +15,8 @@ debug = 0
 dinvoke = { path = "dinvoke"}
 data = { path = "data"}
 bindings = { path = "bindings"}
-litcrypt = "0.3"
+obfstr = "0.4.3"
+
 
 [build-dependencies]
 cc = "*"

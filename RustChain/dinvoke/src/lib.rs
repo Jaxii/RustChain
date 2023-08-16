@@ -1,12 +1,12 @@
 #[macro_use]
-extern crate litcrypt;
-use_litcrypt!();
+
+use obfstr;
 
 use std::ptr;
 use std::ffi::CString;
 use data::{CloseHandle, DLL_PROCESS_ATTACH, EntryPoint, LdrGetProcedureAddress, LoadLibraryA, OpenProcess, PVOID, PeMetadata, GUID, CONTEXT, LptopLevelExceptionFilter};
 use libc::c_void;
-use litcrypt::lc;
+
 use winproc::Process;
 
 use bindings::Windows::Win32::{Foundation::{HANDLE, HINSTANCE, PSTR, BOOL}, System::{WindowsProgramming::{OBJECT_ATTRIBUTES, CLIENT_ID, IO_STATUS_BLOCK}, Diagnostics::Debug::{MINIDUMP_EXCEPTION_INFORMATION, MINIDUMP_USER_STREAM_INFORMATION, MINIDUMP_CALLBACK_INFORMATION, GetThreadContext, SetThreadContext}, SystemInformation::SYSTEM_INFO, Memory::MEMORY_BASIC_INFORMATION, Threading::GetCurrentThread}, Security::SECURITY_ATTRIBUTES};
@@ -51,8 +51,8 @@ pub fn set_unhandled_exception_filter(address: usize) -> LptopLevelExceptionFilt
     {
         let ret: Option<LptopLevelExceptionFilter>;
         let func_ptr: data::SetUnhandledExceptionFilter;
-        let module_base_address = get_module_base_address(&lc!("kernel32.dll")); 
-        dynamic_invoke!(module_base_address,&lc!("SetUnhandledExceptionFilter"),func_ptr,ret,address);
+        let module_base_address = get_module_base_address(&obfstr::obfstr!("kernel32.dll")); 
+        dynamic_invoke!(module_base_address,&obfstr::obfstr!("SetUnhandledExceptionFilter"),func_ptr,ret,address);
 
         match ret {
             Some(x) => return x,
@@ -203,7 +203,7 @@ pub fn call_module_entry_point(pe_info: &PeMetadata, module_base_address: isize)
 
         if !ret.as_bool()
         {
-            return Err(lc!("[x] Failed to call module's entry point (DllMain -> DLL_PROCESS_ATTACH)."));
+            return Err(obfstr::obfstr!("[x] Failed to call module's entry point (DllMain -> DLL_PROCESS_ATTACH).").to_string());
         }
 
         Ok(())
@@ -269,10 +269,10 @@ pub fn ldr_get_procedure_address (module_handle: isize, function_name: &str, ord
     {   
         let mut result: isize = 0;
         
-        let module_base_address = get_module_base_address(&lc!("ntdll.dll")); 
+        let module_base_address = get_module_base_address(&obfstr::obfstr!("ntdll.dll")); 
         if module_base_address != 0
         {
-            let function_address: isize = get_function_address(module_base_address, &lc!("LdrGetProcedureAddress"));
+            let function_address: isize = get_function_address(module_base_address, &obfstr::obfstr!("LdrGetProcedureAddress"));
 
             if function_address != 0 
             {
@@ -280,7 +280,7 @@ pub fn ldr_get_procedure_address (module_handle: isize, function_name: &str, ord
                 let func_ptr: LdrGetProcedureAddress = std::mem::transmute(function_address);  
                 let return_address: *mut c_void = std::mem::transmute(&u64::default());
                 let return_address: *mut PVOID = std::mem::transmute(return_address);
-                let mut fun_name: *mut String = std::mem::transmute(&String::default());
+                let mut fun_name: *mut String = std::mem::transmute(&mut String::default());
 
                 if function_name == ""
                 {
@@ -288,6 +288,7 @@ pub fn ldr_get_procedure_address (module_handle: isize, function_name: &str, ord
                 }
                 else 
                 {
+                    
                     *fun_name = function_name.to_string();
                 }
 
@@ -300,12 +301,12 @@ pub fn ldr_get_procedure_address (module_handle: isize, function_name: &str, ord
             }
             else 
             {
-                return Err(lc!("[x] Error obtaining LdrGetProcedureAddress address."));
+                return Err(obfstr::obfstr!("[x] Error obtaining LdrGetProcedureAddress address.").to_string());
             }
         }
         else 
         {
-            return Err(lc!("[x] Error obtaining ntdll.dll base address."));
+            return Err(obfstr::obfstr!("[x] Error obtaining ntdll.dll base address.").to_string());
         }
 
         Ok(result)
@@ -331,11 +332,11 @@ pub fn load_library_a(module: &str) -> Result<isize, String> {
     unsafe 
     {    
 
-        let module_base_address = get_module_base_address(&lc!("kernel32.dll")); 
+        let module_base_address = get_module_base_address(&obfstr::obfstr!("kernel32.dll")); 
         let result;
         if module_base_address != 0
         {
-            let function_address = get_function_address(module_base_address, &lc!("LoadLibraryA"));
+            let function_address = get_function_address(module_base_address, &obfstr::obfstr!("LoadLibraryA"));
 
             if function_address != 0 
             {
@@ -347,12 +348,12 @@ pub fn load_library_a(module: &str) -> Result<isize, String> {
             }
             else 
             {
-                return Err(lc!("[x] Error obtaining LoadLibraryA address."));
+                return Err(obfstr::obfstr!("[x] Error obtaining LoadLibraryA address.").to_string());
             }
         } 
         else 
         {
-            return Err(lc!("[x] Error obtaining kernel32.dll base address."));
+            return Err(obfstr::obfstr!("[x] Error obtaining kernel32.dll base address.").to_string());
         }
 
         Ok(result.0 as isize)
@@ -381,11 +382,11 @@ pub fn open_process(desired_access: u32, inherit_handle: i32, process_id: u32) -
     unsafe 
     {    
 
-        let module_base_address = get_module_base_address(&lc!("kernel32.dll")); 
+        let module_base_address = get_module_base_address(&obfstr::obfstr!("kernel32.dll")); 
         let handle;
         if module_base_address != 0
         {
-            let function_address = get_function_address(module_base_address, &lc!("OpenProcess"));
+            let function_address = get_function_address(module_base_address, &obfstr::obfstr!("OpenProcess"));
 
             if function_address != 0 
             {
@@ -396,12 +397,12 @@ pub fn open_process(desired_access: u32, inherit_handle: i32, process_id: u32) -
             }
             else 
             {
-                return Err(lc!("[x] Error obtaining OpenProcess address."));
+                return Err(obfstr::obfstr!("[x] Error obtaining OpenProcess address.").to_string());
             }
         } 
         else 
         {
-            return Err(lc!("[x] Error obtaining kernel32.dll base address."));
+            return Err(obfstr::obfstr!("[x] Error obtaining kernel32.dll base address.").to_string());
         }
 
         Ok(handle)
@@ -433,11 +434,11 @@ pub fn close_handle(handle: HANDLE) -> Result<bool,String> {
     unsafe 
     {    
 
-        let module_base_address = get_module_base_address(&lc!("kernel32.dll")); 
+        let module_base_address = get_module_base_address(&obfstr::obfstr!("kernel32.dll")); 
         let ret;
         if module_base_address != 0
         {
-            let function_address = get_function_address(module_base_address, &lc!("CloseHandle"));
+            let function_address = get_function_address(module_base_address, &obfstr::obfstr!("CloseHandle"));
 
             if function_address != 0 
             {
@@ -448,12 +449,12 @@ pub fn close_handle(handle: HANDLE) -> Result<bool,String> {
             }
             else 
             {
-                return Err(lc!("[x] Error obtaining CloseHandle address."));
+                return Err(obfstr::obfstr!("[x] Error obtaining CloseHandle address.").to_string());
             }
         } 
         else 
         {
-            return Err(lc!("[x] Error obtaining kernel32.dll base address."));
+            return Err(obfstr::obfstr!("[x] Error obtaining kernel32.dll base address.").to_string());
         }
 
        if ret == 0
@@ -473,8 +474,8 @@ pub fn query_full_process_image_name(process_handle: HANDLE, flags: u32, name: *
     {
         let ret;
         let func_ptr: data::QueryFullProcessImageNameW;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("QueryFullProcessImageNameW"),func_ptr,ret,process_handle,flags,name,size);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("QueryFullProcessImageNameW"),func_ptr,ret,process_handle,flags,name,size);
 
         match ret {
             Some(x) => return x,
@@ -491,8 +492,8 @@ pub fn create_transaction(attributes: *mut SECURITY_ATTRIBUTES,uow: *mut GUID, o
     {
         let ret: Option<HANDLE>;
         let func_ptr: data::CreateTransaction;
-        let ktmv = load_library_a(&lc!("KtmW32.dll")).unwrap();
-        dynamic_invoke!(ktmv,&lc!("CreateTransaction"),func_ptr,ret,attributes,uow,options,isolation_level,isolation_flags,timeout,description);
+        let ktmv = load_library_a(&obfstr::obfstr!("KtmW32.dll")).unwrap();
+        dynamic_invoke!(ktmv,&obfstr::obfstr!("CreateTransaction"),func_ptr,ret,attributes,uow,options,isolation_level,isolation_flags,timeout,description);
 
         match ret {
             Some(x) => return x,
@@ -509,8 +510,8 @@ pub fn get_system_info(sysinfo: *mut SYSTEM_INFO)  {
     {
         let _ret: Option<()>;
         let func_ptr: data::GetSystemInfo;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("GetSystemInfo"),func_ptr,_ret,sysinfo);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("GetSystemInfo"),func_ptr,_ret,sysinfo);
     }   
 }
 
@@ -522,8 +523,8 @@ pub fn virtual_query_ex(process_handle: HANDLE, page_address: *const c_void, buf
     {
         let ret: Option<usize>;
         let func_ptr: data::VirtualQueryEx;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("VirtualQueryEx"),func_ptr,ret,process_handle,page_address,buffer,length);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("VirtualQueryEx"),func_ptr,ret,process_handle,page_address,buffer,length);
 
         match ret {
             Some(x) => return x,
@@ -540,8 +541,8 @@ pub fn create_file_transacted(name: *mut u8, access: u32, mode: u32, attributes:
     {
         let ret: Option<HANDLE>;
         let func_ptr: data::CreateFileTransactedA;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("CreateFileTransactedW"),func_ptr,ret,name,access,mode,attributes,disposition,flags,template,transaction,version,extended);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("CreateFileTransactedW"),func_ptr,ret,name,access,mode,attributes,disposition,flags,template,transaction,version,extended);
 
         match ret {
             Some(x) => return x,
@@ -558,8 +559,8 @@ pub fn mini_dump_write_dump (process: HANDLE, process_id: u32, file: HANDLE, dum
     {
         let ret;
         let func_ptr: data::MiniDumpWriteDump;
-        let dbg = load_library_a(&lc!("Dbgcore.dll")).unwrap();
-        dynamic_invoke!(dbg,&lc!("MiniDumpWriteDump"),func_ptr,ret,process,process_id,file,dump_type,exception,stream,callback);
+        let dbg = load_library_a(&obfstr::obfstr!("Dbgcore.dll")).unwrap();
+        dynamic_invoke!(dbg,&obfstr::obfstr!("MiniDumpWriteDump"),func_ptr,ret,process,process_id,file,dump_type,exception,stream,callback);
 
         match ret {
             Some(x) => return x,
@@ -576,8 +577,8 @@ pub fn get_file_size(handle: HANDLE, size: *mut u32) -> u32 {
     {
         let ret: Option<u32>;
         let func_ptr: data::GetFileSize;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("GetFileSize"),func_ptr,ret,handle,size);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("GetFileSize"),func_ptr,ret,handle,size);
 
         match ret {
             Some(x) => return x,
@@ -594,8 +595,8 @@ pub fn create_file_mapping (file: HANDLE, attributes: *const SECURITY_ATTRIBUTES
     {
         let ret: Option<HANDLE>;
         let func_ptr: data::CreateFileMapping;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("CreateFileMappingW"),func_ptr,ret,file,attributes,protect,max_size_high,max_size_low,name);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("CreateFileMappingW"),func_ptr,ret,file,attributes,protect,max_size_high,max_size_low,name);
 
         match ret {
             Some(x) => return x,
@@ -612,8 +613,8 @@ pub fn map_view_of_file (file: HANDLE, access: u32, off_high: u32, off_low: u32,
     {
         let ret: Option<PVOID>;
         let func_ptr: data::MapViewOfFile;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("MapViewOfFile"),func_ptr,ret,file,access,off_high,off_low,bytes);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("MapViewOfFile"),func_ptr,ret,file,access,off_high,off_low,bytes);
 
         match ret {
             Some(x) => return x,
@@ -630,8 +631,8 @@ pub fn unmap_view_of_file (base_address: PVOID) -> bool {
     {
         let ret: Option<BOOL>;
         let func_ptr: data::UnmapViewOfFile;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("UnmapViewOfFile"),func_ptr,ret,base_address);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("UnmapViewOfFile"),func_ptr,ret,base_address);
 
         match ret {
             Some(x) => return x.as_bool(),
@@ -648,8 +649,8 @@ pub fn rollback_transaction(transaction: HANDLE) -> bool {
     {
         let ret: Option<BOOL>;
         let func_ptr: data::RollbackTransaction;
-        let ktmv = load_library_a(&lc!("KtmW32.dll")).unwrap();
-        dynamic_invoke!(ktmv,&lc!("RollbackTransaction"),func_ptr,ret,transaction);
+        let ktmv = load_library_a(&obfstr::obfstr!("KtmW32.dll")).unwrap();
+        dynamic_invoke!(ktmv,&obfstr::obfstr!("RollbackTransaction"),func_ptr,ret,transaction);
 
         match ret {
             Some(x) => return x.as_bool(),
@@ -666,8 +667,8 @@ pub fn set_handle_information (object: HANDLE, mask: u32, flags: u32) -> bool {
     {
         let ret: Option<BOOL>;
         let func_ptr: data::SetHandleInformation;
-        let kernel32 = get_module_base_address(&lc!("kernel32.dll"));
-        dynamic_invoke!(kernel32,&lc!("SetHandleInformation"),func_ptr,ret,object,mask,flags);
+        let kernel32 = get_module_base_address(&obfstr::obfstr!("kernel32.dll"));
+        dynamic_invoke!(kernel32,&obfstr::obfstr!("SetHandleInformation"),func_ptr,ret,object,mask,flags);
 
         match ret {
             Some(x) => return x.as_bool(),
@@ -685,8 +686,8 @@ pub fn nt_write_virtual_memory (handle: HANDLE, base_address: PVOID, buffer: PVO
     {
         let ret;
         let func_ptr: data::NtWriteVirtualMemory;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtWriteVirtualMemory"),func_ptr,ret,handle,base_address,buffer,size,bytes_written);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtWriteVirtualMemory"),func_ptr,ret,handle,base_address,buffer,size,bytes_written);
 
         match ret {
             Some(x) => return x,
@@ -705,8 +706,8 @@ pub fn nt_allocate_virtual_memory (handle: HANDLE, base_address: *mut PVOID, zer
     {
         let ret;
         let func_ptr: data::NtAllocateVirtualMemory;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtAllocateVirtualMemory"),func_ptr,ret,handle,base_address,zero_bits,size,allocation_type,protection);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtAllocateVirtualMemory"),func_ptr,ret,handle,base_address,zero_bits,size,allocation_type,protection);
 
         match ret {
             Some(x) => return x,
@@ -724,8 +725,8 @@ pub fn nt_protect_virtual_memory (handle: HANDLE, base_address: *mut PVOID, size
     {
         let ret;
         let func_ptr: data::NtProtectVirtualMemory;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtProtectVirtualMemory"),func_ptr,ret,handle,base_address,size,new_protection,old_protection);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtProtectVirtualMemory"),func_ptr,ret,handle,base_address,size,new_protection,old_protection);
 
         match ret {
             Some(x) => return x,
@@ -743,8 +744,8 @@ pub fn nt_query_information_process (handle: HANDLE, process_information_class: 
     {
         let ret;
         let func_ptr: data::NtQueryInformationProcess;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtQueryInformationProcess"),func_ptr,ret,handle,process_information_class,process_information,length,return_length);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtQueryInformationProcess"),func_ptr,ret,handle,process_information_class,process_information,length,return_length);
 
         match ret {
             Some(x) => return x,
@@ -762,8 +763,8 @@ pub fn rtl_adjust_privilege(privilege: u32, enable: u8, current_thread: u8, enab
     {
         let ret;
         let func_ptr: data::RtlAdjustPrivilege;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("RtlAdjustPrivilege"),func_ptr,ret,privilege,enable,current_thread,enabled);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("RtlAdjustPrivilege"),func_ptr,ret,privilege,enable,current_thread,enabled);
 
         match ret {
             Some(x) => return x,
@@ -781,8 +782,8 @@ pub fn nt_query_system_information(system_information_class: u32, system_informa
     {
         let ret;
         let func_ptr: data::NtQuerySystemInformation;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtQuerySystemInformation"),func_ptr,ret,system_information_class,system_information,length,return_length);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtQuerySystemInformation"),func_ptr,ret,system_information_class,system_information,length,return_length);
 
         match ret {
             Some(x) => return x,
@@ -800,8 +801,8 @@ pub fn nt_query_information_thread(handle: HANDLE, thread_information_class: u32
     {
         let ret;
         let func_ptr: data::NtQueryInformationProcess;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtQueryInformationThread"),func_ptr,ret,handle,thread_information_class,thread_information,length,return_length);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtQueryInformationThread"),func_ptr,ret,handle,thread_information_class,thread_information,length,return_length);
 
         match ret {
             Some(x) => return x,
@@ -819,8 +820,8 @@ pub fn nt_query_information_file(handle: HANDLE, io: *mut IO_STATUS_BLOCK, file_
     {
         let ret;
         let func_ptr: data::NtQueryInformationFile;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtQueryInformationFile"),func_ptr,ret,handle,io,file_information,length,file_information_class);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtQueryInformationFile"),func_ptr,ret,handle,io,file_information,length,file_information_class);
 
         match ret {
             Some(x) => return x,
@@ -839,8 +840,8 @@ pub fn nt_open_process(handle: *mut HANDLE, desired_access: u32, attributes: *mu
     {
         let ret;
         let func_ptr: data::NtOpenProcess;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtOpenProcess"),func_ptr,ret,handle,desired_access,attributes,client_id);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtOpenProcess"),func_ptr,ret,handle,desired_access,attributes,client_id);
 
         match ret {
             Some(x) => return x,
@@ -858,8 +859,8 @@ pub fn nt_duplicate_object(source_phandle: HANDLE, source_handle:HANDLE, target_
     {
         let ret;
         let func_ptr: data::NtDuplicateObject;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtDuplicateObject"),func_ptr,ret,source_phandle,source_handle,target_phandle,target_handle,desired_access,attributes,options);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtDuplicateObject"),func_ptr,ret,source_phandle,source_handle,target_phandle,target_handle,desired_access,attributes,options);
 
         match ret {
             Some(x) => return x,
@@ -877,8 +878,8 @@ pub fn nt_query_object(handle: HANDLE, object_information_class: u32, object_inf
     {
         let ret;
         let func_ptr: data::NtQueryObject;
-        let ntdll = get_module_base_address(&lc!("ntdll.dll"));
-        dynamic_invoke!(ntdll,&lc!("NtQueryObject"),func_ptr,ret,handle,object_information_class,object_information,length,return_length);
+        let ntdll = get_module_base_address(&obfstr::obfstr!("ntdll.dll"));
+        dynamic_invoke!(ntdll,&obfstr::obfstr!("NtQueryObject"),func_ptr,ret,handle,object_information_class,object_information,length,return_length);
 
         match ret {
             Some(x) => return x,
